@@ -21,11 +21,12 @@ class DatabaseManager:
     ):
         """
         Args:
-            host: DB 호스트 (None일 경우 환경변수에서 가져옴)
-            port: DB 포트 (None일 경우 환경변수에서 가져옴)
-            database: DB 이름 (None일 경우 환경변수에서 가져옴)
-            user: DB 사용자명 (None일 경우 환경변수에서 가져옴)
-            password: DB 비밀번호 (None일 경우 환경변수에서 가져옴)
+            (none일 경우 환경변수에서 가져옴)
+            host: DB 호스트 
+            port: DB 포트 
+            database: DB 이름
+            user: DB 사용자명 
+            password: DB 비밀번호 
         """
         self.host = host or os.getenv('DB_HOST', 'localhost')
         self.port = port or int(os.getenv('DB_PORT', '5432'))
@@ -60,8 +61,8 @@ class DatabaseManager:
 
     def fetch_messages(
         self,
-        table_name: str = 'chat_messages',
-        message_column: str = 'message',
+        table_name: str = 'youtube_comments',
+        message_column: str = 'text',
         limit: Optional[int] = None,
         where_clause: str = None
     ) -> List[str]:
@@ -69,10 +70,10 @@ class DatabaseManager:
         데이터베이스에서 채팅 메시지만 가져오기
 
         Args:
-            table_name: 테이블 이름 (기본값: 'chat_messages')
-            message_column: 메시지 컬럼명 (기본값: 'message')
+            table_name: 테이블 이름 (기본값: 'youtube_comments')
+            message_column: 메시지 컬럼명 (기본값: 'text')
             limit: 가져올 메시지 수 제한 (None일 경우 전체)
-            where_clause: WHERE 조건절 (예: "created_at > '2025-01-01'")
+            where_clause: WHERE 조건절 (예: "published_at > '2025-01-01T10:20:30Z'")
 
         Returns:
             메시지 문자열 리스트
