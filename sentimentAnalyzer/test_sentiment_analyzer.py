@@ -6,7 +6,6 @@ DB 연결 없이 감정 분석을 테스트하는 스크립트
 import json
 from sentiment_analyzer import SentimentAnalyzer
 
-
 def test_with_sample_data():
     """샘플 데이터를 사용한 감정 분석 테스트"""
 
@@ -50,7 +49,7 @@ def test_with_sample_data():
     print("  ...")
 
     try:
-        print("\n[1/2] Gemini API로 감정 분석 수행 중...")
+        print("\n[1/2] 감정 분석 수행 중...")
         analyzer = SentimentAnalyzer(temperature=0.1)
         result = analyzer.analyze_messages(sample_messages)
 
@@ -68,48 +67,17 @@ def test_with_sample_data():
 
         # 결과 시각화
         print("\n감정 분포:")
-        print(f"  긍정(Positive): {result['positive']}%")
-        print(f"  부정(Negative): {result['negative']}%")
-        print(f"  중립(Neutral):  {result['neutral']}%")
-        print(f"  합계:           {result['positive'] + result['negative'] + result['neutral']}%")
+        print(f"  Positive: {result['positive']}%")
+        print(f"  Negative: {result['negative']}%")
+        print(f"  Neutral:  {result['neutral']}%")
+        print(f"  합계:     {result['positive'] + result['negative'] + result['neutral']}%")
 
     except Exception as e:
         print(f"\n오류 발생: {e}")
         import traceback
         traceback.print_exc()
 
-
-def test_with_custom_messages():
-    """사용자 정의 메시지로 테스트"""
-
-    print("\n\n" + "=" * 60)
-    print("사용자 정의 메시지 테스트")
-    print("=" * 60)
-
-    custom_messages = [
-        "정말 최고의 방송이에요!",
-        "별로에요...",
-        "그냥 그래요",
-    ]
-
-    print(f"\n테스트 메시지:")
-    for i, msg in enumerate(custom_messages, 1):
-        print(f"  {i}. {msg}")
-
-    try:
-        analyzer = SentimentAnalyzer(temperature=0.1)
-        result = analyzer.analyze_messages(custom_messages)
-
-        print("\n감정 분석 결과:")
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-
-    except Exception as e:
-        print(f"\n오류 발생: {e}")
-
-
 if __name__ == "__main__":
     # 샘플 데이터 테스트
     test_with_sample_data()
-    # test_with_custom_messages()
-
     print("\n테스트 완료!")
