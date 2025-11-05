@@ -1,25 +1,37 @@
 import { NextResponse } from "next/server";
 
-export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const channelId = url.searchParams.get("channelId") ?? "unknown";
+const sessionData: Record<string, any[]> = {};
 
-  console.log("요청 채널 ID:", channelId);
-
-  // 요약(원형용)
-  const summary = {
-    positive: Math.floor(Math.random() * 50) + 30,
-    neutral: Math.floor(Math.random() * 30) + 10,
-    negative: Math.floor(Math.random() * 30) + 10
+function generatePoint(index: number) {
+  return {
+    time: `00:${String(index * 1).padStart(2, "0")}`,
+    positive: Math.floor(Math.random() * 40) + 30,
+    neutral: Math.floor(Math.random() * 20) + 20,
+    negative: Math.floor(Math.random() * 30) + 10,
   };
+}
 
-  // 시간대별(시계열) - 10포인트 생성 (예: 5분 단위)
-  const timeline = Array.from({ length: 10 }).map((_, i) => ({
-    time: `${String(i * 5).padStart(2, "0")}:00`,
-    positive: Math.floor(Math.random() * 20) + 5,
-    neutral: Math.floor(Math.random() * 10) + 3,
-    negative: Math.floor(Math.random() * 15) + 2
-  }));
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const channelId = searchParams.get("channelId");
 
-  return NextResponse.json({ summary, timeline });
+  if (!channelId) {
+    return NextResponse.json(
+      { error: "채널 ID가 필요합니다." },
+      { status: 400 }
+    );
+  }
+
+  if (!sessionData[channelId]) sessionData[channelId] = [];
+
+  const currentData = sessionData[channelId];
+  const newIndex = currentData.length;
+
+  const newPoint = generatePoint(newIndex);
+
+  currentData.push(newPoint);
+
+  await new Promise((res) => setTimeout(res, 1000));
+
+  return NextResponse.json(currentData);
 }
