@@ -1,21 +1,23 @@
 "use client";
 
-import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
-interface SentimentData {
-  positive: number;
-  neutral: number;
-  negative: number;
-}
+const COLORS = ["#4ade80", "#facc15", "#f87171"];
 
-export default function SentimentChart({ data }: { data: SentimentData }) {
+export default function SentimentChart({
+  summary,
+}: {
+  summary: { positive: number; neutral: number; negative: number };
+}) {
   const chartData = [
-    { name: "긍정", value: data.positive },
-    { name: "보통", value: data.neutral },
-    { name: "부정", value: data.negative },
+    { name: "긍정", value: summary.positive },
+    { name: "보통", value: summary.neutral },
+    { name: "부정", value: summary.negative },
   ];
 
-  const COLORS = ["#4ade80", "#facc15", "#f87171"]; // 초록, 노랑, 빨강
+  if (!summary) {
+    return <div className="text-gray-500">데이터를 불러오는 중...</div>;
+  }
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-md">
@@ -23,16 +25,9 @@ export default function SentimentChart({ data }: { data: SentimentData }) {
       <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie
-              data={chartData}
-              dataKey="value"
-              nameKey="name"
-              outerRadius={120}
-              fill="#8884d8"
-              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
-            >
-              {chartData.map((_, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index]} />
+            <Pie data={chartData} dataKey="value" nameKey="name" outerRadius={100} label>
+              {chartData.map((_, i) => (
+                <Cell key={i} fill={COLORS[i]} />
               ))}
             </Pie>
             <Tooltip />
