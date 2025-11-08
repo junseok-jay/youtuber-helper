@@ -107,7 +107,7 @@ public class YouTubeHtmlParser {
         return comments;
     }
 
-    private String formatTime(long ms) {
+    public String formatTime(long ms) {
         long hh = ms / 3600_000;
         long mm = (ms % 3600_000) / 60_000;
         long ss = (ms % 60_000) / 1000;
