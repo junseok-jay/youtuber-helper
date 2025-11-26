@@ -1,5 +1,6 @@
 package com.example.DEVs.service;
 
+import com.example.DEVs.dto.HighlightDataDto;
 import com.example.DEVs.entity.Highlight;
 import com.example.DEVs.entity.Sentiment;
 import com.example.DEVs.repository.HighlightRepository;
@@ -29,7 +30,7 @@ public class HighlightService {
     private final HighlightRepository highlightRepository;
     private final SentimentRepository sentimentRepository;
 
-    public void saveVideo(MultipartFile videoFile, String videoId) throws IOException, InterruptedException{
+    public List<HighlightDataDto> saveVideo(MultipartFile videoFile, String videoId) throws IOException, InterruptedException{
         Files.createDirectories(Paths.get(VIDEO_BASE_PATH));
 
         Path filePath = Path.of(VIDEO_BASE_PATH, videoId + ".mp4");
@@ -41,6 +42,9 @@ public class HighlightService {
         }
 
         cutHighlightVideos(videoId);
+
+        // 타임라인 기준으로 영상 분석 코드 예정
+        return loadHighlightTimeline(videoId);
     }
 
     public void extractHighlight(String videoId){
@@ -73,8 +77,6 @@ public class HighlightService {
                 h.setTotalMessages(curr.getTotalMessages());
                 h.setIncreaseRate(Math.round(increaseRate * 100) / 100.0);
 
-                h.setReason("POSITIVE>=50 or MSG INCREASE>=30%");
-
                 highlightRepository.save(h);
             }
         }
@@ -101,9 +103,9 @@ public class HighlightService {
 
             runFfmpegCut(inputVideoPath, start, end, outputPath);
 
-            // 저장 경로 DB에 업데이트하고 싶으면:
-            // h.setClipPath(outputPath);
-            // highlightRepository.save(h);
+            h.setVideoUrl(outputPath);
+
+            highlightRepository.save(h);
         }
     }
 
@@ -135,4 +137,24 @@ public class HighlightService {
             throw new RuntimeException("FFmpeg process failed. code=" + exitCode);
         }
     }
+
+    public List<HighlightDataDto> loadHighlightTimeline(String videoId) {
+
+        List<Highlight> highlights =
+                highlightRepository.findAllByVideoIdOrderByStartTime(videoId);
+
+        return highlights.stream()
+                .map(h -> HighlightDataDto.builder()
+                        .id(h.getId())
+                        .startTime(h.getStartTime().toString())    // ISO-8601
+                        .endTime(h.getEndTime().toString())
+                        .positiveRate(h.getPositive())
+                        .viewerIncrease(h.getIncreaseRate())
+                        .summary(h.getSummary())
+                        .videoUrl(String.format("/videos/%s/%d.mp4", videoId, h.getId()))
+                        .build()
+                )
+                .toList();
+    }
+
 }
