@@ -66,14 +66,14 @@ def main():
 
         if not messages:
             print("경고: 가져온 메시지가 없습니다.")
-            return
+            result = {"positive": 0.0, "negative": 0.0, "neutral": 0.0}
+        else:
+            print(f"총 {len(messages)}개의 메시지를 가져왔습니다.")
 
-        print(f"총 {len(messages)}개의 메시지를 가져왔습니다.")
-
-        # 감정 분석 수행
-        print("\n[2/3] 감정 분석 수행 중...")
-        analyzer = SentimentAnalyzer(temperature=0.1)
-        result = analyzer.analyze_messages(messages)
+            # 감정 분석 수행
+            print("\n[2/3] 감정 분석 수행 중...")
+            analyzer = SentimentAnalyzer(temperature=0.1)
+            result = analyzer.analyze_messages(messages)
 
         # 결과 저장
         print("\n[3/3] 결과 저장 중...")
@@ -120,6 +120,8 @@ def main():
         print(f"\n오류 발생: {e}")
         import traceback
         traceback.print_exc()
+        import sys
+        sys.exit(1)
 
 
 if __name__ == "__main__":
