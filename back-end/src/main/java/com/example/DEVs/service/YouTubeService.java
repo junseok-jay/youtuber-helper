@@ -66,13 +66,23 @@ public class YouTubeService {
             JsonNode items = objectMapper.readTree(json).path("items");
 
             items.forEach(item -> {
-                long publishTime = Instant.parse(item.path("snippet").path("publishedAt").asText()).toEpochMilli();
+                long publishTime = Instant.parse(item.path("snippet").path("publishedAt").asText()).toEpochMilli()
+                        - liveStartTime.toEpochMilli();
+                String author = item.path("authorDetails").path("displayName").asText();
+                String message = item.path("snippet").path("displayMessage").asText();
+
+                if(checkDuplicate(videoId, author, message, publishTime)){
+                    return;
+                }
+                String publishedAt = formatTime(publishTime);
 
                 Chat chat = new Chat();
                 chat.setVideoId(videoId);
-                chat.setAuthor(item.path("authorDetails").path("displayName").asText());
-                chat.setText(item.path("snippet").path("displayMessage").asText());
-                chat.setPublishedAt(formatTime(publishTime - liveStartTime.toEpochMilli()));
+                chat.setAuthor(author);
+                chat.setText(message);
+                chat.setPublishedAt(publishedAt);
+
+                chatRepository.save(chat);
                 chats.add(chat);
             });
         } catch (Exception e) {
@@ -85,14 +95,13 @@ public class YouTubeService {
         String chatId = fetchActiveLiveChatId(videoId);
         if (chatId == null || chatId.isEmpty()) return null;
 
-        long end = System.currentTimeMillis() + durationSeconds * 1000L;
-
-        while (System.currentTimeMillis() < end) {
-            fetchLiveChatMessages(chatId, videoId).forEach(chatRepository::save);
-            try {
-                Thread.sleep(5000);
-            } catch (InterruptedException ignored) {
-            }
+        long end = System.currentTimeMillis() + durationSeconds * 1_000L;
+        try {
+            Thread.sleep(durationSeconds * 1_000L);
+            fetchLiveChatMessages(chatId, videoId);
+        }
+        catch (Exception e){
+            throw new RuntimeException(e);
         }
         return this.liveStartTime;
     }
@@ -102,5 +111,14 @@ public class YouTubeService {
         long mm = (ms % 3600_000) / 60_000;
         long ss = (ms % 60_000) / 1000;
         return String.format("%02d:%02d:%02d", hh, mm, ss);
+    }
+
+    boolean checkDuplicate(String videoId, String author, String message, long publishAt){
+        String start = formatTime(publishAt - 60_000L);
+        String end = formatTime(publishAt + 60_000L);
+
+        return chatRepository.existsByVideoIdAndAuthorAndTextAndPublishedAtBetween(
+                videoId, author, message, start, end
+        );
     }
 }
