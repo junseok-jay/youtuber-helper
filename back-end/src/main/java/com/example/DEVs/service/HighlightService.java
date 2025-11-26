@@ -8,7 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -21,6 +23,8 @@ public class HighlightService {
 
     // 원본 영상 저장 경로
     private static final String VIDEO_BASE_PATH = "./videos/";
+    // 클립 저장 경로
+    private static final String CLIP_OUTPUT_PATH = "./videos/highlights/";
 
     private final HighlightRepository highlightRepository;
     private final SentimentRepository sentimentRepository;
@@ -35,6 +39,8 @@ public class HighlightService {
         if(!highlightRepository.existsByVideoId(videoId)) {
             extractHighlight(videoId);
         }
+
+        cutHighlightVideos(videoId);
     }
 
     public void extractHighlight(String videoId){
@@ -74,4 +80,59 @@ public class HighlightService {
         }
     }
 
+    public void cutHighlightVideos(String videoId) throws IOException, InterruptedException {
+
+        List<Highlight> highlights = highlightRepository.findByVideoId(videoId);
+
+        String inputVideoPath = VIDEO_BASE_PATH + videoId + ".mp4";
+        String OutputFolder = CLIP_OUTPUT_PATH + videoId + "/";
+
+        Files.createDirectories(Paths.get(OutputFolder));
+
+        for (Highlight h : highlights) {
+
+            String start = h.getStartTime(); // "HH:mm:ss"
+            String end = h.getEndTime();     // "HH:mm:ss"
+
+            String outputFileName = videoId + "_" + start.replace(":", "") + "-" +
+                    end.replace(":", "") + ".mp4";
+
+            String outputPath = OutputFolder + outputFileName;
+
+            runFfmpegCut(inputVideoPath, start, end, outputPath);
+
+            // 저장 경로 DB에 업데이트하고 싶으면:
+            // h.setClipPath(outputPath);
+            // highlightRepository.save(h);
+        }
+    }
+
+    private void runFfmpegCut(String input, String start, String end, String output)
+            throws IOException, InterruptedException {
+
+        ProcessBuilder pb = new ProcessBuilder(
+                "ffmpeg",
+                "-i", input,
+                "-ss", start,
+                "-to", end,
+                "-c", "copy",
+                output
+        );
+
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+
+        // ffmpeg 로그 읽기 (원할 경우)
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println("[FFMPEG] " + line);
+            }
+        }
+
+        int exitCode = process.waitFor();
+        if (exitCode != 0) {
+            throw new RuntimeException("FFmpeg process failed. code=" + exitCode);
+        }
+    }
 }
