@@ -1,5 +1,6 @@
 package com.example.DEVs.entity;
 
+import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,8 +21,10 @@ public class Highlight {
     private String endTime;    // 00:06:00
 
     private double positive;
-    private int totalMessages;
     private double increaseRate;
+    private int totalMessages;
 
-    private String reason; // "POSITIVE & INCREASE"
+    @Nullable
+    private String summary;          // 해당 구간 요약 내용
+    private String videoUrl;
 }
