@@ -4,8 +4,10 @@ import com.example.DEVs.entity.Sentiment;
 import com.example.DEVs.entity.SentimentId;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface SentimentRepository extends JpaRepository<Sentiment, SentimentId> {
     Optional<Sentiment> findFirstByVideoIdOrderByTimelineDesc(String videoId);
+    List<Sentiment> findAllByVideoId(String videoId);
 }
