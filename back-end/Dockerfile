@@ -11,12 +11,20 @@ RUN ./gradlew build -x test
 FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y python3 python3-pip
+# python, uv 설치
+RUN apt-get update && apt-get install -y python3 python3-venv && rm -rf /var/lib/apt/lists/*
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 COPY --from=builder /app/build/libs/*.jar app.jar
-COPY sentimentAnalyzer/ /sentimentAnalyzer/
+COPY python_modules/ /python_modules/
 
-RUN pip3 install -r /sentimentAnalyzer/requirements.txt
+# 가상환경이랑 의존성 설치
+ENV VIRTUAL_ENV=/python_modules/.venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+WORKDIR /python_modules
+RUN uv sync --frozen
+WORKDIR /app
 
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
