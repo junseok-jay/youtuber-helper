@@ -1,6 +1,7 @@
-"use client"; // useState 등 client side 기능 사용
+"use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import "./globals.css";
 
 export default function RootLayout({
@@ -10,20 +11,59 @@ export default function RootLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const handleMenuClick = () => {
+    setSidebarOpen(false);
+  };
+
   return (
     <html lang="ko">
       <body className="bg-gray-50 text-gray-900 flex h-screen overflow-hidden">
         <aside
-          className={`fixed top-0 left-0 h-full w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out
+          className={`fixed top-0 left-0 h-full w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out z-20
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
         >
           <div className="p-6">
             <h2 className="text-2xl font-bold mb-6">메뉴</h2>
             <ul className="space-y-4">
-              <li className="hover:text-blue-500 cursor-pointer">홈</li>
-              <li className="hover:text-blue-500 cursor-pointer">채팅 분석</li>
-              <li className="hover:text-blue-500 cursor-pointer">하이라이트</li>
-              <li className="hover:text-blue-500 cursor-pointer">설정</li>
+              {/* <li>
+                <Link 
+                  href="/" 
+                  className="block hover:text-blue-500 cursor-pointer"
+                  onClick={handleMenuClick}
+                >
+                  홈
+                </Link>
+              </li> */}
+              
+              <li>
+                <Link 
+                  href="/" 
+                  className="block hover:text-blue-500 cursor-pointer"
+                  onClick={handleMenuClick}
+                >
+                  채팅 분석
+                </Link>
+              </li>
+
+              <li>
+                <Link 
+                  href="/video-highlights" 
+                  className="block hover:text-blue-500 cursor-pointer"
+                  onClick={handleMenuClick}
+                >
+                  하이라이트
+                </Link>
+              </li>
+
+              <li>
+                <Link 
+                  href="/final-analyze" 
+                  className="block hover:text-blue-500 cursor-pointer"
+                  onClick={handleMenuClick}
+                >
+                  최종 분석
+                </Link>
+              </li>
             </ul>
           </div>
         </aside>
@@ -50,25 +90,21 @@ export default function RootLayout({
                   />
                 </svg>
               </button>
-              <h1 className="text-xl font-bold">YOUTUBE-HELPER</h1>
+              <Link href="/" className="text-xl font-bold">
+                YOUTUBE-HELPER
+              </Link>
             </div>
-            {/* <div className="hidden md:flex gap-4">
-              <button className="px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition">
-                로그인
-              </button>
-            </div> */}
           </nav>
 
           <main className="max-w-5xl mx-auto p-6">{children}</main>
         </div>
-
-        {/* 
+        
         {sidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-30 z-50"
+          <div 
+            className="fixed inset-0 bg-transparent z-10"
             onClick={() => setSidebarOpen(false)}
-          ></div>
-        )} */}
+          />
+        )}
       </body>
     </html>
   );
