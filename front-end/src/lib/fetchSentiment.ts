@@ -40,7 +40,7 @@ export async function fetchSentimentData(channelId: string): Promise<{
 
   console.log("🌐 Real API Mode: 백엔드에서 감정 데이터 가져오는 중...");
 
-  const res = await fetch(`${backendUrl}/youtube/live/sentiment/start?videoId=${channelId}&durationSeconds=10`, {
+  const res = await fetch(`${backendUrl}/youtube/live/sentiment/start?videoId=${channelId}&durationSeconds=60`, {
     method: "POST",
   });
 
