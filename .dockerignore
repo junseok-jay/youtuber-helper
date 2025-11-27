@@ -1,0 +1,10 @@
+.git
+.gitignore
+.env
+**/.DS_Store
+**/__pycache__
+**/.venv
+db_data
+back-end/build
+front-end/node_modules
+python_modules/.venv
