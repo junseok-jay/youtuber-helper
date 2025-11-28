@@ -59,10 +59,8 @@ export default function HighlightsPage() {
     setHighlights([]);
 
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-    const mockMode = process.env.NEXT_PUBLIC_MOCK_MODE === "true";
 
     try {
-
       if (!backendUrl) {
         throw new Error(
           "환경변수 NEXT_PUBLIC_BACKEND_URL이 설정되지 않았습니다."
@@ -71,11 +69,19 @@ export default function HighlightsPage() {
 
       console.log("🌐 Real API Mode: 영상 업로드 및 분석 요청 중...");
 
-
       const formData = new FormData();
       formData.append("video", uploadFile);
 
-      const res = await fetch(`${backendUrl}/video/analyze`, {
+      const savedChannelId = localStorage.getItem("savedChannelId");
+
+      if (savedChannelId) {
+        formData.append("channelId", savedChannelId);
+        console.log("Channel ID added:", savedChannelId);
+      } else {
+        console.warn("⚠️ 저장된 채널 ID가 없습니다. 영상만 전송합니다.");
+      }
+
+      const res = await fetch(`${backendUrl}/API/video/analyze`, {
         method: "POST",
         body: formData,
       });
@@ -320,7 +326,7 @@ export default function HighlightsPage() {
                               </div>
                               <div className="flex items-center gap-1.5 text-red-600 font-semibold bg-red-50 px-3 py-1.5 rounded-lg border border-red-100">
                                 <TrendingUp className="w-4 h-4" />
-                                시청자 +{item.viewerIncrease}%
+                                채팅량 +{item.viewerIncrease}%
                               </div>
                             </div>
                           </div>
