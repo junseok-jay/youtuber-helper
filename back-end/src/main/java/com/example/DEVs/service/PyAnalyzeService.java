@@ -1,5 +1,6 @@
 package com.example.DEVs.service;
 
+import com.example.DEVs.entity.Highlight;
 import com.example.DEVs.entity.Sentiment;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -58,6 +59,30 @@ public class PyAnalyzeService {
         sentimentEntity.setTimeline(analyzeTime);
 
         return sentimentEntity;
+    }
+
+    public Highlight runhighlightvideo(String videoPath, String start, String end) throws Exception {
+        List<String> cmd = new ArrayList<>();
+        cmd.add("python");
+//        cmd.add(SCRIPT_PATH);
+        cmd.add(videoPath);
+        cmd.add("--where");
+        cmd.add(start);
+        cmd.add(end);
+
+        ProcessBuilder pb = new ProcessBuilder(cmd);
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+        System.out.println(cmd);
+
+        int exitCode = process.waitFor();
+        if (exitCode != 0) {
+            throw new RuntimeException("Python script failed. exit code=" + exitCode);
+        }
+        ObjectMapper mapper = new ObjectMapper();
+
+        Highlight result = new Highlight();
+        return  result;
     }
 
     public String formatTime(long ms) {
