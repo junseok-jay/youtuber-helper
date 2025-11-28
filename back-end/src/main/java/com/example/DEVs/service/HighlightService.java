@@ -101,7 +101,9 @@ public class HighlightService {
 
             String outputPath = OutputFolder + outputFileName;
 
-            runFfmpegCut(inputVideoPath, start, end, outputPath);
+            if(!highlightRepository.existsByVideoUrl(outputPath)) {
+                runFfmpegCut(inputVideoPath, start, end, outputPath);
+            }
 
             h.setVideoUrl(outputPath);
 
