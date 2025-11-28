@@ -6,4 +6,11 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ChatRepository extends JpaRepository<Chat, Long> {
+    boolean existsByVideoIdAndAuthorAndTextAndPublishedAtBetween(
+            String videoId,
+            String author,
+            String text,
+            String start,
+            String end
+    );
 }
