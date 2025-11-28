@@ -30,7 +30,7 @@ public class HighlightService {
     private final HighlightRepository highlightRepository;
     private final SentimentRepository sentimentRepository;
 
-    public List<HighlightDataDto> saveVideo(MultipartFile videoFile, String videoId) throws IOException, InterruptedException{
+    public List<HighlightDataDto> highlightVideo(MultipartFile videoFile, String videoId) throws IOException, InterruptedException{
         Files.createDirectories(Paths.get(VIDEO_BASE_PATH));
 
         Path filePath = Path.of(VIDEO_BASE_PATH, videoId + ".mp4");
@@ -146,8 +146,8 @@ public class HighlightService {
         return highlights.stream()
                 .map(h -> HighlightDataDto.builder()
                         .id(h.getId())
-                        .startTime(h.getStartTime().toString())    // ISO-8601
-                        .endTime(h.getEndTime().toString())
+                        .startTime(h.getStartTime())    // ISO-8601
+                        .endTime(h.getEndTime())
                         .positiveRate(h.getPositive())
                         .viewerIncrease(h.getIncreaseRate())
                         .summary(h.getSummary())

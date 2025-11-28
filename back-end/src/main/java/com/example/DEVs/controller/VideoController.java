@@ -22,7 +22,7 @@ public class VideoController {
     public ResponseEntity<?> uploadVideo(@RequestParam("video") MultipartFile videoFile,
                                          @RequestParam String videoId) throws IOException, InterruptedException {
 
-        List<HighlightDataDto> timeline = highlightServiceService.saveVideo(videoFile, videoId);
+        List<HighlightDataDto> timeline = highlightServiceService.highlightVideo(videoFile, videoId);
 
         return ResponseEntity.ok(Map.of(
                 "highlights", timeline
