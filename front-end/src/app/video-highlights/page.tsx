@@ -93,7 +93,7 @@ export default function HighlightsPage() {
 
       const data = await res.json();
 
-      setHighlights(data);
+      setHighlights(data.highlights || []);
     } catch (error) {
       console.error("영상 분석 중 오류 발생:", error);
       alert("영상 분석에 실패했습니다. 백엔드 연결 상태를 확인해주세요.");
