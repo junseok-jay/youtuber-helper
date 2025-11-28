@@ -42,3 +42,8 @@ next-env.d.ts
 
 # local db volume
 db_data
+
+# python_modules
+__pycache__
+sentiment_result.json
+video_analysis_result.json
