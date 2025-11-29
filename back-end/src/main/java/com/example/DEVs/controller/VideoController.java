@@ -20,9 +20,9 @@ public class VideoController {
 
     @PostMapping("/analyze")
     public ResponseEntity<?> uploadVideo(@RequestParam("video") MultipartFile videoFile,
-                                         @RequestParam String videoId) throws IOException, InterruptedException {
+                                         @RequestParam String channelId) throws IOException, InterruptedException {
 
-        List<HighlightDataDto> timeline = highlightServiceService.highlightVideo(videoFile, videoId);
+        List<HighlightDataDto> timeline = highlightServiceService.highlightVideo(videoFile, channelId);
 
         return ResponseEntity.ok(Map.of(
                 "highlights", timeline

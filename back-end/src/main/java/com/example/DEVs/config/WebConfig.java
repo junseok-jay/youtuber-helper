@@ -15,7 +15,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowCredentials(false)
                 .maxAge(3600);
 
-        registry.addMapping("/youtube/**")
+        registry.addMapping("/API/**")
                 .allowedOrigins("http://localhost:3000")
                 .allowedMethods("GET", "POST")
                 .allowedHeaders("*")
@@ -23,6 +23,6 @@ public class WebConfig implements WebMvcConfigurer {
                 .maxAge(3600);
 
         // 개발용
-        registry.addMapping("**");
+        registry.addMapping("/**");
     }
 }
