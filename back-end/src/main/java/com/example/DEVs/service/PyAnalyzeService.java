@@ -7,7 +7,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,15 +17,20 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PyAnalyzeService {
 
-    private static final String SCRIPT_PATH = "../python_modules/sentimentAnalyzer/main.py";
-    private static final String RESULT_PATH = "./sentiment_result.json";
+    private static final String PYTHON_MODULE_PATH = "..\\python_modules";
+
+    private static final String TEXT_ANALYZE_PATH = "..\\python_modules\\sentimentAnalyzer\\main.py";
+    private static final String TEXT_RESULT_PATH = "..\\python_modules\\sentiment_result.json";
+
+    private static final String VIDEO_ANALYZE_PATH = "..\\python_modules\\videoAnalyzer\\run_videoAnalyzer.py";
+    private static final String VIDEO_RESULT_PATH = "..\\python_modules\\video_analysis_result.json";
 
     public Sentiment runSentimentAnalyzer(String videoId, long collectStartTime) throws Exception {
 
         List<String> cmd = new ArrayList<>();
         String analyzeTime = formatTime(collectStartTime);
         cmd.add("python");
-        cmd.add(SCRIPT_PATH);
+        cmd.add(TEXT_ANALYZE_PATH);
         cmd.add("--where");
         String where = String.format(
                 "video_id = '%s' AND published_at >= '%s'",
@@ -33,6 +40,7 @@ public class PyAnalyzeService {
         cmd.add(where);
 
         ProcessBuilder pb = new ProcessBuilder(cmd);
+        pb.directory(new File(PYTHON_MODULE_PATH));
         pb.redirectErrorStream(true);
         Process process = pb.start();
 
@@ -44,7 +52,7 @@ public class PyAnalyzeService {
         }
 
         ObjectMapper mapper = new ObjectMapper();
-        JsonNode root = mapper.readTree(new File(RESULT_PATH));
+        JsonNode root = mapper.readTree(new File(TEXT_RESULT_PATH));
 
         JsonNode analyses = root.path("analyses");
         JsonNode latest = analyses.get(analyses.size() - 1);
@@ -61,28 +69,41 @@ public class PyAnalyzeService {
         return sentimentEntity;
     }
 
-    public Highlight runhighlightvideo(String videoPath, String start, String end) throws Exception {
+    public String runHighlightVideo(String videoPath) throws Exception {
         List<String> cmd = new ArrayList<>();
+        cmd.add("uv");
+        cmd.add("run");
         cmd.add("python");
-//        cmd.add(SCRIPT_PATH);
+        cmd.add(VIDEO_ANALYZE_PATH);
+        cmd.add("--file");
         cmd.add(videoPath);
-        cmd.add("--where");
-        cmd.add(start);
-        cmd.add(end);
 
         ProcessBuilder pb = new ProcessBuilder(cmd);
+        pb.directory(new File(PYTHON_MODULE_PATH));
         pb.redirectErrorStream(true);
         Process process = pb.start();
-        System.out.println(cmd);
+
+        BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        for (String line; (line = br.readLine()) != null; ) {
+            System.out.println(line);
+        }
+
 
         int exitCode = process.waitFor();
         if (exitCode != 0) {
             throw new RuntimeException("Python script failed. exit code=" + exitCode);
         }
-        ObjectMapper mapper = new ObjectMapper();
 
-        Highlight result = new Highlight();
-        return  result;
+
+
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree(new File(VIDEO_RESULT_PATH));
+        JsonNode analyses = root.path("analyses");
+        JsonNode highlight = analyses.get(analyses.size() - 1)
+                .path("analysis_result")
+                .path("summary");
+
+        return highlight.asText();
     }
 
     public String formatTime(long ms) {

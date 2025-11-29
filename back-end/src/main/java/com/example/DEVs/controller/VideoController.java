@@ -20,7 +20,7 @@ public class VideoController {
 
     @PostMapping("/analyze")
     public ResponseEntity<?> uploadVideo(@RequestParam("video") MultipartFile videoFile,
-                                         @RequestParam String channelId) throws IOException, InterruptedException {
+                                         @RequestParam String channelId) throws Exception {
 
         List<HighlightDataDto> timeline = highlightServiceService.highlightVideo(videoFile, channelId);
 
