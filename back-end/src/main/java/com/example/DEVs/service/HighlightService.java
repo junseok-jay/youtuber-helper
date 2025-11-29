@@ -153,7 +153,7 @@ public class HighlightService {
                         .positiveRate(h.getPositive())
                         .viewerIncrease(h.getIncreaseRate())
                         .summary(h.getSummary())
-                        .videoUrl(String.format("/videos/%s/%d.mp4", videoId, h.getId()))
+                        .videoUrl("http://localhost:8080" + h.getVideoUrl())
                         .build()
                 )
                 .toList();
