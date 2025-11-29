@@ -25,6 +25,7 @@ public class Highlight {
     private int totalMessages;
 
     @Nullable
+    @Column(columnDefinition = "TEXT")
     private String summary;          // 해당 구간 요약 내용
     private String videoUrl;
 }
