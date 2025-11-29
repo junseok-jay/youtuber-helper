@@ -12,27 +12,32 @@ export async function fetchSentimentData(channelId: string): Promise<{
   summary: { positive: number; neutral: number; negative: number };
   timeline: SentimentPoint[];
 }> {
+  // ✅ [추가됨] 로컬 스토리지 저장 로직
+  // 브라우저 환경(window가 존재함)이고 channelId가 유효할 때만 실행
+  if (typeof window !== "undefined" && channelId) {
+    localStorage.setItem("savedChannelId", channelId);
+    console.log(`💾 LocalStorage에 저장됨: ${channelId}`);
+  }
+
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
   const mockMode = process.env.NEXT_PUBLIC_MOCK_MODE === "true";
 
   if (mockMode) {
-    // (모킹 로직은 그대로)
+    // ... (기존 모킹 로직 유지)
     const newPoint: SentimentPoint = {
       time: new Date().toLocaleTimeString().slice(3, 8),
       positive: Math.floor(Math.random() * 50) + 25,
       neutral: Math.floor(Math.random() * 30) + 20,
       negative: Math.floor(Math.random() * 40) + 10,
     };
-
     accumulatedTimeline = [...accumulatedTimeline, newPoint];
-
+    // ... (summary 계산 로직 유지)
     const total = accumulatedTimeline.length;
     const summary = {
       positive: Math.round(accumulatedTimeline.reduce((a, b) => a + b.positive, 0) / total),
       neutral: Math.round(accumulatedTimeline.reduce((a, b) => a + b.neutral, 0) / total),
       negative: Math.round(accumulatedTimeline.reduce((a, b) => a + b.negative, 0) / total),
     };
-
     return { summary, timeline: accumulatedTimeline };
   }
 
@@ -40,14 +45,14 @@ export async function fetchSentimentData(channelId: string): Promise<{
 
   console.log("🌐 Real API Mode: 백엔드에서 감정 데이터 가져오는 중...");
 
-  const res = await fetch(`${backendUrl}/youtube/live/sentiment/start?videoId=${channelId}&durationSeconds=10`, {
+  // ... (기존 API 호출 로직 유지)
+  const res = await fetch(`${backendUrl}/youtube/live/sentiment/start?videoId=${channelId}&durationSeconds=60`, {
     method: "POST",
   });
 
   if (!res.ok) throw new Error("백엔드 API 요청 실패");
   const data = await res.json();
 
-  // ✅ 단일 객체 응답을 처리
   const newPoint: SentimentPoint = {
     time: data.timeline ?? data.timestamp ?? new Date().toLocaleTimeString().slice(3, 8),
     positive: data.positive ?? data.pos ?? 0,
@@ -55,9 +60,9 @@ export async function fetchSentimentData(channelId: string): Promise<{
     negative: data.negative ?? data.neg ?? 0,
   };
 
-  // ✅ 누적
   accumulatedTimeline = [...accumulatedTimeline, newPoint];
 
+  // ... (summary 계산 로직 유지)
   const total = accumulatedTimeline.length;
   const summary = {
     positive: Math.round(accumulatedTimeline.reduce((a, b) => a + b.positive, 0) / total),

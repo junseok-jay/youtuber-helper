@@ -6,6 +6,9 @@ import os
 from typing import List, Optional
 import psycopg2
 from psycopg2 import sql
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv())
 
 
 class DatabaseManager:

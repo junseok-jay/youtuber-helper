@@ -15,7 +15,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PyAnalyzeService {
 
-    private static final String SCRIPT_PATH = "../sentimentAnalyzer/main.py";
+    private static final String SCRIPT_PATH = "../python_modules/sentimentAnalyzer/main.py";
     private static final String RESULT_PATH = "./sentiment_result.json";
 
     public Sentiment runSentimentAnalyzer(String videoId, long collectStartTime) throws Exception {

@@ -7,9 +7,9 @@ import os
 import json
 from typing import List, Dict
 import google.generativeai as genai
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
-load_dotenv()
+load_dotenv(find_dotenv())
 
 class SentimentAnalyzer:
     """감정 분석 클래스"""
@@ -47,24 +47,43 @@ class SentimentAnalyzer:
             return {"positive": 0.0, "negative": 0.0, "neutral": 0.0}
 
         # 메시지들을 번호와 함께 텍스트로 변환
+        print(f"DEBUG: Gemini API 프롬프트에 포함될 메시지 수: {len(messages)}")
         messages_text = "\n".join([f"{i+1}. {msg}" for i, msg in enumerate(messages)])
 
-        prompt = f"""Please classify the following streaming chat messages as positive, negative, or neutral, and calculate the percentage of each sentiment among all messages.
+        prompt = f"""Please classify the following streaming chat messages as positive, negative, or neutral, and count the number of messages for each sentiment.
 
 Chat messages:
 {messages_text}
 
 Response format:
 {{
-"positive": float,
-"negative": float,
-"neutral": float
+"positive": int,
+"negative": int,
+"neutral": int
 }}
 
+Example of what the response would look like once you provide the messages:
+    If the messages were:
+    1. "This is great!"
+    2. "I don't like this part."
+    3. "The stream is live."
+    4. "Awesome content."
+
+The analysis (4 total messages):
+    Positive (2): "This is great!", "Awesome content."
+    Negative (1): "I don't like this part."
+    Neutral (1): "The stream is live."
+
+The response:
+{{
+"positive": 2,
+"negative": 1,
+"neutral": 1
+}}
+    
 Rules:
-- The sum of the three values ​​must be 100.
-- Only display up to the second decimal place.
 - Respond only in JSON format.
+- Do not output the thinking stage, only output in json format.
 """
 
         try:
@@ -80,28 +99,37 @@ Rules:
             result = json.loads(response_text)
 
             # 결과 검증 및 정규화
-            total = result.get('positive', 0) + result.get('negative', 0) + result.get('neutral', 0)
+            # 모델이 반환한 카운트 가져오기
+            pos_count = result.get('positive', 0)
+            neg_count = result.get('negative', 0)
+            neu_count = result.get('neutral', 0)
+            
+            total_count = pos_count + neg_count + neu_count
 
-            if total == 0:
+            if total_count == 0:
                 return {"positive": 0.0, "negative": 0.0, "neutral": 0.0}
 
-            # 합이 정확히 100이 되도록 조정
-            if abs(total - 100) > 0.1:
-                result['positive'] = round((result.get('positive', 0) / total) * 100, 1)
-                result['negative'] = round((result.get('negative', 0) / total) * 100, 1)
-                result['neutral'] = round((result.get('neutral', 0) / total) * 100, 1)
-
-                # 반올림 오차 조정
-                current_total = result['positive'] + result['negative'] + result['neutral']
-                if current_total != 100:
-                    diff = 100 - current_total
-                    result['neutral'] = round(result['neutral'] + diff, 1)
-
-            return {
-                "positive": float(result.get('positive', 0)),
-                "negative": float(result.get('negative', 0)),
-                "neutral": float(result.get('neutral', 0))
+            # 퍼센트 계산
+            pos_pct = (pos_count / total_count) * 100
+            neg_pct = (neg_count / total_count) * 100
+            neu_pct = (neu_count / total_count) * 100
+            
+            # 소수점 첫째 자리까지 반올림
+            final_result = {
+                "positive": round(pos_pct, 1),
+                "negative": round(neg_pct, 1),
+                "neutral": round(neu_pct, 1)
             }
+
+            # 합이 정확히 100이 되도록 조정 (반올림 오차 보정)
+            current_total = final_result['positive'] + final_result['negative'] + final_result['neutral']
+            if abs(current_total - 100) > 0.01: # 100이 아닌 경우
+                 diff = 100 - current_total
+                 # 가장 큰 비중을 가진 항목에 오차 더하기 (또는 neutral에 더하기)
+                 # 여기서는 간단하게 neutral에 더함
+                 final_result['neutral'] = round(final_result['neutral'] + diff, 1)
+
+            return final_result
 
         except json.JSONDecodeError as e:
             raise ValueError(f"Gemini API 응답을 JSON으로 파싱할 수 없습니다: {e}")
