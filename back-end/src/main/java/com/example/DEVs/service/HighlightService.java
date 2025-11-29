@@ -17,6 +17,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -89,26 +92,34 @@ public class HighlightService {
 
         Files.createDirectories(Paths.get(OutputFolder));
 
+        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         for (Highlight h : highlights) {
+            executor.submit(() -> {
+                String start = h.getStartTime(); // "HH:mm:ss"
+                String end = h.getEndTime();     // "HH:mm:ss"
 
-            String start = h.getStartTime(); // "HH:mm:ss"
-            String end = h.getEndTime();     // "HH:mm:ss"
+                String outputFileName = videoId + "_" + start.replace(":", "") + "-" +
+                        end.replace(":", "") + ".mp4";
 
-            String outputFileName = videoId + "_" + start.replace(":", "") + "-" +
-                    end.replace(":", "") + ".mp4";
+                String outputPath = OutputFolder + outputFileName;
 
-            String outputPath = OutputFolder + outputFileName;
+                try {
+                    if (!highlightRepository.existsByVideoUrl(outputPath)) {
+                        runFfmpegCut(inputVideoPath, start, end, outputPath);
+                        String highlightPath = "..\\back-end" + outputPath.substring(1);
+                        String summary = pyAnalyzeService.runHighlightVideo(highlightPath);
+                        h.setSummary(summary);
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                h.setVideoUrl(outputPath.substring(1));
 
-            if (!highlightRepository.existsByVideoUrl(outputPath)) {
-                runFfmpegCut(inputVideoPath, start, end, outputPath);
-                String highlightPath = "..\\back-end" + outputPath.substring(1);
-                String summary = pyAnalyzeService.runHighlightVideo(highlightPath);
-                h.setSummary(summary);
-            }
-            h.setVideoUrl(outputPath.substring(1));
-
-            highlightRepository.save(h);
+                highlightRepository.save(h);
+            });
         }
+        executor.shutdown();
+        executor.awaitTermination(1, TimeUnit.HOURS);
     }
 
     private void runFfmpegCut(String input, String start, String end, String output)
