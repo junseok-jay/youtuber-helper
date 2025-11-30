@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload,
@@ -12,6 +12,7 @@ import {
   Sparkles,
   Loader2,
   Film,
+  X,
 } from "lucide-react";
 
 interface HighlightData {
@@ -24,15 +25,31 @@ interface HighlightData {
   videoUrl?: string;
 }
 
+function parseTimeToSeconds(timeStr: string): number {
+  const parts = timeStr.split(":").map(Number);
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return 0;
+}
+
 export default function HighlightsPage() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [highlights, setHighlights] = useState<HighlightData[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
 
+  const [playingId, setPlayingId] = useState<number | null>(null);
+
+  const filePreviewUrl = useMemo(() => {
+    if (uploadFile) return URL.createObjectURL(uploadFile);
+    return null;
+  }, [uploadFile]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setUploadFile(e.target.files[0]);
+      setHighlights([]);
+      setPlayingId(null);
     }
   };
 
@@ -41,6 +58,8 @@ export default function HighlightsPage() {
     setIsDragOver(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       setUploadFile(e.dataTransfer.files[0]);
+      setHighlights([]);
+      setPlayingId(null);
     }
   };
 
@@ -57,28 +76,22 @@ export default function HighlightsPage() {
     if (!uploadFile) return;
     setIsAnalyzing(true);
     setHighlights([]);
+    setPlayingId(null);
 
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
     try {
-      if (!backendUrl) {
-        throw new Error(
-          "환경변수 NEXT_PUBLIC_BACKEND_URL이 설정되지 않았습니다."
-        );
-      }
+      if (!backendUrl)
+        throw new Error("환경변수 NEXT_PUBLIC_BACKEND_URL 미설정");
 
-      console.log("🌐 Real API Mode: 영상 업로드 및 분석 요청 중...");
+      console.log("Real API Mode: 영상 업로드 및 분석 요청 중...");
 
       const formData = new FormData();
       formData.append("video", uploadFile);
 
       const savedChannelId = localStorage.getItem("savedChannelId");
-
       if (savedChannelId) {
         formData.append("channelId", savedChannelId);
-        console.log("Channel ID added:", savedChannelId);
-      } else {
-        console.warn("⚠️ 저장된 채널 ID가 없습니다. 영상만 전송합니다.");
       }
 
       const res = await fetch(`${backendUrl}/API/video/analyze`, {
@@ -93,10 +106,16 @@ export default function HighlightsPage() {
 
       const data = await res.json();
 
-      setHighlights(data.highlights || []);
+      if (data.highlights && Array.isArray(data.highlights)) {
+        setHighlights(data.highlights);
+      } else if (Array.isArray(data)) {
+        setHighlights(data);
+      } else {
+        setHighlights([]);
+      }
     } catch (error) {
       console.error("영상 분석 중 오류 발생:", error);
-      alert("영상 분석에 실패했습니다. 백엔드 연결 상태를 확인해주세요.");
+      alert("영상 분석에 실패했습니다.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -104,7 +123,6 @@ export default function HighlightsPage() {
 
   return (
     <div className="min-h-screen p-6 md:p-10 relative overflow-hidden flex flex-col items-center">
-
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -115,8 +133,8 @@ export default function HighlightsPage() {
             AI 하이라이트 분석
           </h1>
           <p className="text-gray-600 ml-1">
-            방송 영상을 업로드하면 시청자 반응이 폭발적인 순간을
-            자동으로 찾아냅니다.
+            방송 영상을 업로드하면 시청자 반응이 폭발적인 순간을 자동으로
+            찾아냅니다.
           </p>
         </div>
 
@@ -127,7 +145,6 @@ export default function HighlightsPage() {
                 <Film className="w-5 h-5 text-gray-500" />
                 영상 업로드
               </h2>
-
               <div className="flex-1 flex flex-col gap-4">
                 <div
                   onDrop={handleDrop}
@@ -137,7 +154,7 @@ export default function HighlightsPage() {
                     flex-1 min-h-[250px] border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-all duration-300
                     ${
                       isDragOver
-                        ? "border-purple-500 bg-purple-50 scale-[1.02]"
+                        ? "border-purple-500 bg-purple-50"
                         : "border-gray-300 hover:border-purple-400 bg-gray-50/50"
                     }
                   `}
@@ -165,22 +182,11 @@ export default function HighlightsPage() {
                             onClick={(e) => {
                               e.preventDefault();
                               setUploadFile(null);
+                              setHighlights([]);
                             }}
                             className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M6 18L18 6M6 6l12 12"
-                              />
-                            </svg>
+                            <X className="w-4 h-4" />
                           </button>
                         </div>
                         <p className="font-bold text-gray-800 truncate max-w-[90%] text-lg">
@@ -189,7 +195,6 @@ export default function HighlightsPage() {
                         <p className="text-sm text-gray-500 mt-1 mb-6 bg-gray-200 px-3 py-1 rounded-full">
                           {(uploadFile.size / (1024 * 1024)).toFixed(2)} MB
                         </p>
-
                         <button
                           onClick={processVideoAnalysis}
                           disabled={isAnalyzing}
@@ -198,29 +203,24 @@ export default function HighlightsPage() {
                             ${
                               isAnalyzing
                                 ? "bg-gray-400 cursor-wait"
-                                : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:scale-[1.02] hover:shadow-purple-500/30"
+                                : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:scale-[1.02]"
                             }
                           `}
                         >
                           {isAnalyzing ? (
                             <>
-                              <Loader2 className="animate-spin w-5 h-5" />
-                              분석 진행 중...
+                              <Loader2 className="animate-spin w-5 h-5" /> 분석
+                              진행 중...
                             </>
                           ) : (
                             <>
-                              <Sparkles className="w-5 h-5" />
-                              분석 시작
+                              <Sparkles className="w-5 h-5" /> 분석 시작
                             </>
                           )}
                         </button>
                       </motion.div>
                     ) : (
-                      <motion.label
-                        key="upload-placeholder"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+                      <label
                         htmlFor="video-upload"
                         className="cursor-pointer flex flex-col items-center w-full h-full justify-center group"
                       >
@@ -230,10 +230,7 @@ export default function HighlightsPage() {
                         <p className="text-gray-700 font-bold text-lg">
                           영상을 드래그하거나 선택하세요
                         </p>
-                        <p className="text-sm text-gray-400 mt-2">
-                          MP4, MOV, AVI (최대 2GB)
-                        </p>
-                      </motion.label>
+                      </label>
                     )}
                   </AnimatePresence>
                 </div>
@@ -261,9 +258,6 @@ export default function HighlightsPage() {
                     <p className="text-lg font-medium">
                       아직 분석된 데이터가 없습니다.
                     </p>
-                    <p className="text-sm mt-2">
-                      왼쪽에서 영상을 업로드하여 분석을 시작해보세요.
-                    </p>
                   </div>
                 )}
 
@@ -278,7 +272,6 @@ export default function HighlightsPage() {
                         <div className="flex-1 space-y-3 py-1">
                           <div className="h-4 bg-gray-200 rounded w-1/4" />
                           <div className="h-4 bg-gray-200 rounded w-3/4" />
-                          <div className="h-4 bg-gray-200 rounded w-1/2" />
                         </div>
                       </div>
                     ))}
@@ -287,52 +280,99 @@ export default function HighlightsPage() {
 
                 <AnimatePresence>
                   <div className="space-y-4">
-                    {highlights.map((item, index) => (
-                      <motion.div
-                        key={item.id}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.4, delay: index * 0.1 }}
-                        className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all group hover:border-purple-200"
-                      >
-                        <div className="flex flex-col sm:flex-row gap-5">
-                          {/* 썸네일, 없으면 제거 */}
-                          <div className="w-full sm:w-40 h-28 bg-gray-900 rounded-xl flex items-center justify-center flex-shrink-0 relative overflow-hidden cursor-pointer group-hover:ring-2 ring-purple-400 ring-offset-2 transition-all">
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                            <Play className="text-white w-10 h-10 opacity-80 group-hover:scale-110 transition-transform relative" />
-                            <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs font-medium px-1.5 py-0.5 rounded backdrop-blur-sm">
-                              00:30
+                    {highlights.map((item, index) => {
+                      const isPlaying = playingId === item.id;
+
+                      const startSec = parseTimeToSeconds(item.startTime);
+                      const endSec = parseTimeToSeconds(item.endTime);
+
+                      const videoSrc = item.videoUrl
+                        ? item.videoUrl
+                        : filePreviewUrl
+                        ? `${filePreviewUrl}#t=${startSec},${endSec}`
+                        : "";
+
+                      return (
+                        <motion.div
+                          key={item.id}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.4, delay: index * 0.1 }}
+                          className={`
+                            bg-white rounded-2xl p-5 shadow-sm border transition-all group
+                            ${
+                              isPlaying
+                                ? "ring-2 ring-purple-500 border-purple-500"
+                                : "border-gray-100 hover:shadow-md hover:border-purple-200"
+                            }
+                          `}
+                        >
+                          <div className="flex flex-col sm:flex-row gap-5">
+                            <div className="w-full sm:w-60 h-36 bg-gray-900 rounded-xl flex-shrink-0 relative overflow-hidden">
+                              {isPlaying && videoSrc ? (
+                                <video
+                                  src={videoSrc}
+                                  controls
+                                  autoPlay
+                                  className="w-full h-full object-contain bg-black"
+                                  onEnded={() => setPlayingId(null)}
+                                />
+                              ) : (
+                                <div
+                                  onClick={() => setPlayingId(item.id)}
+                                  className="w-full h-full flex items-center justify-center cursor-pointer group/play"
+                                >
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+
+                                  <div className="relative z-10 w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover/play:bg-white/30 transition-all group-hover/play:scale-110">
+                                    <Play
+                                      className="text-white w-6 h-6 ml-1"
+                                      fill="white"
+                                    />
+                                  </div>
+
+                                  <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs font-medium px-1.5 py-0.5 rounded backdrop-blur-sm">
+                                    {item.endTime}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex-1 flex flex-col justify-between py-1">
+                              <div>
+                                <div className="flex items-center gap-3 mb-2">
+                                  <span className="bg-blue-50 text-blue-600 text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border border-blue-100">
+                                    <Clock className="w-3.5 h-3.5" />
+                                    {item.startTime} ~ {item.endTime}
+                                  </span>
+                                  {isPlaying && (
+                                    <span className="text-purple-600 text-xs font-bold animate-pulse flex items-center gap-1">
+                                      <div className="w-2 h-2 rounded-full bg-purple-600" />
+                                      재생 중
+                                    </span>
+                                  )}
+                                </div>
+
+                                <p className="text-gray-700 font-medium text-base leading-relaxed mb-3">
+                                  {item.summary}
+                                </p>
+                              </div>
+
+                              <div className="flex flex-wrap gap-3 text-sm">
+                                <div className="flex items-center gap-1.5 text-green-700 font-semibold bg-green-50 px-3 py-1.5 rounded-lg border border-green-100">
+                                  <CheckCircle className="w-4 h-4" />
+                                  긍정 {item.positiveRate}%
+                                </div>
+                                <div className="flex items-center gap-1.5 text-red-600 font-semibold bg-red-50 px-3 py-1.5 rounded-lg border border-red-100">
+                                  <TrendingUp className="w-4 h-4" />
+                                  채팅량 +{item.viewerIncrease}%
+                                </div>
+                              </div>
                             </div>
                           </div>
-
-                          <div className="flex-1 flex flex-col justify-between py-1">
-                            <div>
-                              <div className="flex items-center gap-3 mb-2">
-                                <span className="bg-blue-50 text-blue-600 text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border border-blue-100">
-                                  <Clock className="w-3.5 h-3.5" />
-                                  {item.startTime} ~ {item.endTime}
-                                </span>
-                              </div>
-
-                              <p className="text-gray-700 font-medium text-base leading-relaxed mb-3">
-                                {item.summary}
-                              </p>
-                            </div>
-
-                            <div className="flex flex-wrap gap-3 text-sm">
-                              <div className="flex items-center gap-1.5 text-green-700 font-semibold bg-green-50 px-3 py-1.5 rounded-lg border border-green-100">
-                                <CheckCircle className="w-4 h-4" />
-                                긍정 {item.positiveRate}%
-                              </div>
-                              <div className="flex items-center gap-1.5 text-red-600 font-semibold bg-red-50 px-3 py-1.5 rounded-lg border border-red-100">
-                                <TrendingUp className="w-4 h-4" />
-                                채팅량 +{item.viewerIncrease}%
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 </AnimatePresence>
               </div>
@@ -340,7 +380,6 @@ export default function HighlightsPage() {
           </section>
         </div>
       </motion.div>
-
       <style jsx>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
@@ -354,24 +393,6 @@ export default function HighlightsPage() {
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background-color: #d1d5db;
-        }
-        @keyframes blob {
-          0%,
-          100% {
-            transform: translate(0, 0) scale(1);
-          }
-          33% {
-            transform: translate(30px, -50px) scale(1.1);
-          }
-          66% {
-            transform: translate(-20px, 20px) scale(0.9);
-          }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
         }
       `}</style>
     </div>
