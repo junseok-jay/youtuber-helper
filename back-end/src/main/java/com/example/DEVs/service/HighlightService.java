@@ -17,33 +17,34 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
 public class HighlightService {
 
     // 원본 영상 저장 경로
-    private static final String VIDEO_BASE_PATH = "./videos/";
+    private static final String VIDEO_BASE_PATH = ".\\videos\\";
     // 클립 저장 경로
-    private static final String CLIP_OUTPUT_PATH = "./videos/highlights/";
+    private static final String CLIP_OUTPUT_PATH = ".\\videos\\highlights\\";
 
     private final HighlightRepository highlightRepository;
     private final SentimentRepository sentimentRepository;
+    private final PyAnalyzeService pyAnalyzeService;
 
-    public List<HighlightDataDto> highlightVideo(MultipartFile videoFile, String videoId) throws IOException, InterruptedException{
+    public List<HighlightDataDto> highlightVideo(MultipartFile videoFile, String videoId) throws Exception{
         Files.createDirectories(Paths.get(VIDEO_BASE_PATH));
 
         Path filePath = Path.of(VIDEO_BASE_PATH, videoId + ".mp4");
 
         Files.copy(videoFile.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-        if(!highlightRepository.existsByVideoId(videoId)) {
+        if(!highlightRepository.existsByVideoId(videoId)){
             extractHighlight(videoId);
+            cutHighlightVideos(videoId);
         }
-
-        cutHighlightVideos(videoId);
-
-        // 타임라인 기준으로 영상 분석 코드 예정
         return loadHighlightTimeline(videoId);
     }
 
@@ -82,33 +83,43 @@ public class HighlightService {
         }
     }
 
-    public void cutHighlightVideos(String videoId) throws IOException, InterruptedException {
+    public void cutHighlightVideos(String videoId) throws Exception {
 
         List<Highlight> highlights = highlightRepository.findByVideoId(videoId);
 
         String inputVideoPath = VIDEO_BASE_PATH + videoId + ".mp4";
-        String OutputFolder = CLIP_OUTPUT_PATH + videoId + "/";
+        String OutputFolder = CLIP_OUTPUT_PATH + videoId + "\\";
 
         Files.createDirectories(Paths.get(OutputFolder));
 
+        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         for (Highlight h : highlights) {
+            executor.submit(() -> {
+                String start = h.getStartTime(); // "HH:mm:ss"
+                String end = h.getEndTime();     // "HH:mm:ss"
 
-            String start = h.getStartTime(); // "HH:mm:ss"
-            String end = h.getEndTime();     // "HH:mm:ss"
+                String outputFileName = videoId + "_" + start.replace(":", "") + "-" +
+                        end.replace(":", "") + ".mp4";
 
-            String outputFileName = videoId + "_" + start.replace(":", "") + "-" +
-                    end.replace(":", "") + ".mp4";
+                String outputPath = OutputFolder + outputFileName;
 
-            String outputPath = OutputFolder + outputFileName;
+                try {
+                    if (!highlightRepository.existsByVideoUrl(outputPath)) {
+                        runFfmpegCut(inputVideoPath, start, end, outputPath);
+                        String highlightPath = "..\\back-end" + outputPath.substring(1);
+                        String summary = pyAnalyzeService.runHighlightVideo(highlightPath);
+                        h.setSummary(summary);
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                h.setVideoUrl(outputPath.substring(1));
 
-            if(!highlightRepository.existsByVideoUrl(outputPath)) {
-                runFfmpegCut(inputVideoPath, start, end, outputPath);
-            }
-
-            h.setVideoUrl(outputPath);
-
-            highlightRepository.save(h);
+                highlightRepository.save(h);
+            });
         }
+        executor.shutdown();
+        executor.awaitTermination(1, TimeUnit.HOURS);
     }
 
     private void runFfmpegCut(String input, String start, String end, String output)
@@ -153,7 +164,7 @@ public class HighlightService {
                         .positiveRate(h.getPositive())
                         .viewerIncrease(h.getIncreaseRate())
                         .summary(h.getSummary())
-                        .videoUrl(String.format("/videos/%s/%d.mp4", videoId, h.getId()))
+                        .videoUrl("http://localhost:8080" + h.getVideoUrl())
                         .build()
                 )
                 .toList();
