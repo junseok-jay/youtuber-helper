@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.util.Map;
 
 @RequiredArgsConstructor
 @RestController
@@ -52,4 +53,12 @@ public class ChatController {
                 .orElse(ResponseEntity.notFound().build());
 
     }
+
+    @PostMapping("/live/chat")
+    public ResponseEntity<?> loadLiveChat(@RequestParam String videoId){
+        return ResponseEntity.ok(Map.of(
+                "Chats", sentimentRepository.findAllByVideoIdOrderByTimeline(videoId)
+        ));
+    }
+
 }
