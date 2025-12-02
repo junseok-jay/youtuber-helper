@@ -26,22 +26,23 @@ import java.util.concurrent.TimeUnit;
 public class HighlightService {
 
     // 원본 영상 저장 경로
-    private static final String VIDEO_BASE_PATH = ".\\videos\\";
+    private static final String VIDEO_BASE_PATH = "./videos/";
     // 클립 저장 경로
-    private static final String CLIP_OUTPUT_PATH = ".\\videos\\highlights\\";
+    private static final String CLIP_OUTPUT_PATH = "./videos/highlights/";
 
     private final HighlightRepository highlightRepository;
     private final SentimentRepository sentimentRepository;
     private final PyAnalyzeService pyAnalyzeService;
 
     public List<HighlightDataDto> highlightVideo(MultipartFile videoFile, String videoId) throws Exception{
-        Files.createDirectories(Paths.get(VIDEO_BASE_PATH));
-
-        Path filePath = Path.of(VIDEO_BASE_PATH, videoId + ".mp4");
-
-        Files.copy(videoFile.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
         if(!highlightRepository.existsByVideoId(videoId)){
+            Path filePath = Path.of(VIDEO_BASE_PATH, videoId + ".mp4");
+
+            if(Files.notExists(filePath)) {
+                Files.createDirectories(Paths.get(VIDEO_BASE_PATH));
+                Files.copy(videoFile.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+            }
             extractHighlight(videoId);
             cutHighlightVideos(videoId);
         }
@@ -49,7 +50,12 @@ public class HighlightService {
     }
 
     public void extractHighlight(String videoId){
-        List<Sentiment> sentimentStream = sentimentRepository.findAllByVideoId(videoId);
+        List<Sentiment> sentimentStream = sentimentRepository.findAllByVideoIdOrderByTimeline(videoId);
+
+        // 감정 데이터가 0개 또는 1개 이하일 경우 → 하이라이트 생성 불가
+        if (sentimentStream.size() < 2) {
+            throw new RuntimeException("[Highlight] 감정 분석 데이터가 부족하여 하이라이트를 생성하지 않습니다. videoId=" + videoId); // 하이라이트 추출 중단
+        }
         Sentiment curr = sentimentStream.remove(0);
 
         for (Sentiment s : sentimentStream) {
@@ -88,7 +94,7 @@ public class HighlightService {
         List<Highlight> highlights = highlightRepository.findByVideoId(videoId);
 
         String inputVideoPath = VIDEO_BASE_PATH + videoId + ".mp4";
-        String OutputFolder = CLIP_OUTPUT_PATH + videoId + "\\";
+        String OutputFolder = CLIP_OUTPUT_PATH + videoId + "/";
 
         Files.createDirectories(Paths.get(OutputFolder));
 
@@ -106,7 +112,7 @@ public class HighlightService {
                 try {
                     if (!highlightRepository.existsByVideoUrl(outputPath)) {
                         runFfmpegCut(inputVideoPath, start, end, outputPath);
-                        String highlightPath = "..\\back-end" + outputPath.substring(1);
+                        String highlightPath = System.getProperty("user.dir") + outputPath.substring(1);
                         String summary = pyAnalyzeService.runHighlightVideo(highlightPath);
                         h.setSummary(summary);
                     }
