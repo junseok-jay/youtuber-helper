@@ -23,7 +23,6 @@ public class YouTubeService {
 
     private Instant liveStartTime;
 
-
     // JSON 가져오기 전용 메소드
     protected String fetchJsonFromUrl(String url) {
         return youtubeWebClient.get()

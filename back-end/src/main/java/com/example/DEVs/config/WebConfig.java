@@ -41,9 +41,6 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${youtube.api.key}")
     private String apiKey;
 
-    @Value("${py_path}")
-    private String pyPath;
-
     @Bean
     public WebClient youtubeWebClient() {
         return WebClient.builder()

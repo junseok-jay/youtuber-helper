@@ -17,18 +17,20 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PyAnalyzeService {
 
-    private static final String PYTHON_MODULE_PATH = "..\\python_modules";
+    private static final String PYTHON_MODULE_PATH = "../python_modules";
 
-    private static final String TEXT_ANALYZE_PATH = "..\\python_modules\\sentimentAnalyzer\\main.py";
-    private static final String TEXT_RESULT_PATH = "..\\python_modules\\sentiment_result.json";
+    private static final String TEXT_ANALYZE_PATH = "../python_modules/sentimentAnalyzer/main.py";
+    private static final String TEXT_RESULT_PATH = "../python_modules/sentiment_result.json";
 
-    private static final String VIDEO_ANALYZE_PATH = "..\\python_modules\\videoAnalyzer\\run_videoAnalyzer.py";
-    private static final String VIDEO_RESULT_PATH = "..\\python_modules\\video_analysis_result.json";
+    private static final String VIDEO_ANALYZE_PATH = "../python_modules/videoAnalyzer/run_videoAnalyzer.py";
+    private static final String VIDEO_RESULT_PATH = "../python_modules/video_analysis_result.json";
 
     public Sentiment runSentimentAnalyzer(String videoId, long collectStartTime) throws Exception {
 
         List<String> cmd = new ArrayList<>();
         String analyzeTime = formatTime(collectStartTime);
+        cmd.add("uv");
+        cmd.add("run");
         cmd.add("python");
         cmd.add(TEXT_ANALYZE_PATH);
         cmd.add("--where");
