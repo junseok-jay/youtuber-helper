@@ -48,7 +48,7 @@ def analyze_local_video(video_path: str, model_name: str = None) -> Dict:
     
     try:
         analyzer = VideoAnalyzer(model_name=model_name)
-        result = analyzer.analyze_video(video_path)
+        result = analyzer.analyze_video_from_local(video_path)
         
         logger.info("분석 완료!")
         return result

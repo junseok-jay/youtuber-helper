@@ -57,7 +57,10 @@ class VideoAnalyzer:
     
     # Gemini 모델 설정
     DEFAULT_MODEL = "gemini-flash-lite-latest"
-    DEFAULT_TEMPERATURE = 1
+    DEFAULT_TEMPERATURE = 0.1
+    DEFAULT_TOP_P = 0.95
+    DEFAULT_TOP_K = 40
+    DEFAULT_MAX_OUTPUT_TOKENS = 1000
     FILE_PROCESSING_POLL_INTERVAL = 2  # 파일 처리 상태 확인 간격 (초)
     
     # 프롬프트 템플릿
@@ -68,7 +71,7 @@ Output Requirements:
 2. **Format**: Return ONLY raw JSON. Do not use Markdown code blocks (e.g., ```json).
 
 Fields:
-1. **summary**: A comprehensive 2-4 sentence summary that captures:
+1. **summary**: A comprehensive 1~3 sentence summary that captures:
    - Main topic or theme of the video
    - Key activities, actions, or events shown
    - Atmosphere, mood, or notable highlights
@@ -138,7 +141,7 @@ Now, analyze the provided video and generate a JSON response following the forma
         Returns:
             처리 완료된 파일 객체
             
-        Raises:
+        Raises
             RuntimeError: 파일 처리에 실패한 경우
         """
         # 업로드
@@ -226,6 +229,9 @@ Now, analyze the provided video and generate a JSON response following the forma
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 temperature=self.DEFAULT_TEMPERATURE,
+                top_p=self.DEFAULT_TOP_P,
+                top_k=self.DEFAULT_TOP_K,
+                max_output_tokens=self.DEFAULT_MAX_OUTPUT_TOKENS,
             ),
         )
         
@@ -233,7 +239,7 @@ Now, analyze the provided video and generate a JSON response following the forma
         logger.info("분석 완료, 결과 파싱 중...")
         return self.parse_response(response.text)
 
-    def analyze_video(self, video_path: str) -> Dict[str, any]:
+    def analyze_video_from_local(self, video_path: str) -> Dict[str, any]:
         """
         로컬 영상 파일을 분석
         
