@@ -9,5 +9,6 @@ import java.util.Optional;
 
 public interface SentimentRepository extends JpaRepository<Sentiment, SentimentId> {
     Optional<Sentiment> findFirstByVideoIdOrderByTimelineDesc(String videoId);
-    List<Sentiment> findAllByVideoId(String videoId);
+    List<Sentiment> findAllByVideoIdOrderByTimeline(String videoId);
+
 }

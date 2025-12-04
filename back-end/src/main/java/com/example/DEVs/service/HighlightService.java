@@ -17,31 +17,32 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+
+import static java.lang.Math.log;
 
 @Service
 @RequiredArgsConstructor
 public class HighlightService {
 
     // 원본 영상 저장 경로
-    private static final String VIDEO_BASE_PATH = ".\\videos\\";
+    private static final String VIDEO_BASE_PATH = "./videos/";
     // 클립 저장 경로
-    private static final String CLIP_OUTPUT_PATH = ".\\videos\\highlights\\";
+    private static final String CLIP_OUTPUT_PATH = "./videos/highlights/";
 
     private final HighlightRepository highlightRepository;
     private final SentimentRepository sentimentRepository;
     private final PyAnalyzeService pyAnalyzeService;
 
     public List<HighlightDataDto> highlightVideo(MultipartFile videoFile, String videoId) throws Exception{
-        Files.createDirectories(Paths.get(VIDEO_BASE_PATH));
-
-        Path filePath = Path.of(VIDEO_BASE_PATH, videoId + ".mp4");
-
-        Files.copy(videoFile.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
         if(!highlightRepository.existsByVideoId(videoId)){
+            Path filePath = Path.of(VIDEO_BASE_PATH, videoId + ".mp4");
+
+            if(Files.notExists(filePath)) {
+                Files.createDirectories(Paths.get(VIDEO_BASE_PATH));
+                Files.copy(videoFile.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+            }
             extractHighlight(videoId);
             cutHighlightVideos(videoId);
         }
@@ -49,46 +50,56 @@ public class HighlightService {
     }
 
     public void extractHighlight(String videoId){
-        List<Sentiment> sentimentStream = sentimentRepository.findAllByVideoId(videoId);
-        Sentiment curr = sentimentStream.remove(0);
+        List<Sentiment> sentimentStream = sentimentRepository.findAllByVideoIdOrderByTimeline(videoId);
+
+        // 감정 데이터가 0개 또는 1개 이하일 경우 → 하이라이트 생성 불가
+        if (sentimentStream.size() < 2) {
+            throw new RuntimeException("[Highlight] 감정 분석 데이터가 부족하여 하이라이트를 생성하지 않습니다. videoId=" + videoId); // 하이라이트 추출 중단
+        }
+
+        Sentiment prev = new Sentiment();
+        prev.setTimeline("00:00:00");
+        prev.setTotalMessages(0);
 
         for (Sentiment s : sentimentStream) {
-            Sentiment prev = curr;
-            curr = s;
+
+            double positive = s.getPositive();
+            double negative = s.getNegative();
+            int total_msg = s.getTotalMessages();
 
             double prevMsg = prev.getTotalMessages();
-            double currMsg = curr.getTotalMessages();
+            double currMsg = s.getTotalMessages();
+            double increaseRate =
+                    prevMsg == 0 ? 0 : (currMsg - prevMsg) / prevMsg;
 
-            if (prevMsg == 0) continue;
+            double highLightScore =
+                    (positive * 0.5) + (negative * 0.1) + (log(total_msg + 1) * 0.4);
 
-            double increaseRate = (currMsg - prevMsg) / prevMsg;
-
-            boolean positiveHigh = curr.getPositive() >= 50.0;
-            boolean increased30 = increaseRate >= 0.30;
-
-            if (positiveHigh || increased30) {
-
+            if(Double.compare(positive, 100.0) != 0 && currMsg > 5){
                 Highlight h = new Highlight();
                 h.setVideoId(videoId);
 
                 h.setStartTime(prev.getTimeline());   // 00:05:00
-                h.setEndTime(curr.getTimeline());     // 00:06:00
+                h.setEndTime(s.getTimeline());     // 00:06:00
 
-                h.setPositive(curr.getPositive());
-                h.setTotalMessages(curr.getTotalMessages());
+                h.setPositive(s.getPositive());
+                h.setTotalMessages(s.getTotalMessages());
                 h.setIncreaseRate(Math.round(increaseRate * 100) / 100.0);
+                h.setHighlightScore(highLightScore);
 
                 highlightRepository.save(h);
             }
+            prev = s;
         }
     }
 
     public void cutHighlightVideos(String videoId) throws Exception {
 
-        List<Highlight> highlights = highlightRepository.findByVideoId(videoId);
+        highlightRepository.deleteNotHighlightByVideoId(videoId);
+        List<Highlight> highlights = highlightRepository.findAllByVideoIdOrderByStartTime(videoId);
 
         String inputVideoPath = VIDEO_BASE_PATH + videoId + ".mp4";
-        String OutputFolder = CLIP_OUTPUT_PATH + videoId + "\\";
+        String OutputFolder = CLIP_OUTPUT_PATH + videoId + "/";
 
         Files.createDirectories(Paths.get(OutputFolder));
 
@@ -106,7 +117,7 @@ public class HighlightService {
                 try {
                     if (!highlightRepository.existsByVideoUrl(outputPath)) {
                         runFfmpegCut(inputVideoPath, start, end, outputPath);
-                        String highlightPath = "..\\back-end" + outputPath.substring(1);
+                        String highlightPath = System.getProperty("user.dir") + outputPath.substring(1);
                         String summary = pyAnalyzeService.runHighlightVideo(highlightPath);
                         h.setSummary(summary);
                     }

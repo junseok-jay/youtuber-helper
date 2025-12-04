@@ -15,6 +15,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y python3 python3-venv && rm -rf /var/lib/apt/lists/*
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
+# ffmepg 설치
+RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder /app/build/libs/*.jar app.jar
 COPY python_modules/ /python_modules/
 

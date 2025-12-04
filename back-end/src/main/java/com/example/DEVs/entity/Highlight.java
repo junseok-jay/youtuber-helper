@@ -23,6 +23,7 @@ public class Highlight {
     private double positive;
     private double increaseRate;
     private int totalMessages;
+    private double highlightScore;
 
     @Nullable
     @Column(columnDefinition = "TEXT")
