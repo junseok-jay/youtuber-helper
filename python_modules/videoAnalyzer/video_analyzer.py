@@ -64,45 +64,44 @@ class VideoAnalyzer:
     FILE_PROCESSING_POLL_INTERVAL = 2  # 파일 처리 상태 확인 간격 (초)
     
     # 프롬프트 템플릿
-    ANALYSIS_PROMPT_TEMPLATE = """Analyze this video comprehensively and extract the following information in JSON format.
+    ANALYSIS_PROMPT_TEMPLATE = """Analyze this video comprehensively, paying close attention to both the VISUAL ACTION and the AUDIO/DIALOGUE. Extract the following information in JSON format.
 
 Output Requirements:
 1. **Language**: All text values must be in **Korean**.
-2. **Format**: Return ONLY raw JSON. Do not use Markdown code blocks (e.g., ```json).
+2. **Format**: Return ONLY raw JSON. Do not use Markdown code blocks.
+3. **Content Focus**: Do NOT just describe the visual scene (e.g., "A man is sitting"). Focus on the **narrative, conversation topic, and the specific reason why this moment is entertaining** (e.g., funny mistake, interesting story, intense reaction).
 
 Fields:
-1. **summary**: A comprehensive 1~3 sentence summary that captures:
-   - Main topic or theme of the video
-   - Key activities, actions, or events shown
-   - Atmosphere, mood, or notable highlights
-   - DO NOT simply list dialogues or transcriptions
-   - Focus on WHAT is happening and WHY it's interesting
+1. **summary**: A comprehensive 2~3 sentence summary capturing the context.
+   - **Context**: What is the streamer doing or talking about? (e.g., specific game situation, telling a story about X)
+   - **Event**: What specifically happens or is said that triggers a reaction?
+   - **Vibe**: The atmosphere (e.g., humorous, tense, touching) and the result.
    
-2. **tags**: A list of 1-4 core keywords in Korean that represent the video's essence.
+2. **tags**: A list of 1-4 core keywords in Korean (Topic, Emotion, Game Name, or Action).
 
 3. **category**: The single most relevant category selected from: [{categories}]
 
 Few-Shot Examples:
 
-Example 1:
-Input: A video of a gamer playing League of Legends.
+Example 1 (Gameplay Highlight):
+Input: A video of a gamer playing a horror game. The streamer screams in terror at a jumpscare and falls off their chair.
 Output:
 {{
-  "summary": "이 영상은 리그 오브 레전드 랭크 게임 실황입니다. 스트리머가 미드 라이너로 플레이하며 팀원들과 협력하여 팀파이트에서 펜타킬을 달성하는 장면이 하이라이트입니다. 극적인 역전 상황에서 뛰어난 컨트롤과 판단력을 보여주며, 승리를 이끌어냅니다.",
-  "tags": ["리그오브레전드", "게임", "펜타킬", "하이라이트"],
+  "summary": "공포 게임 플레이 중 갑작스러운 점프 스케어에 스트리머가 기겁하며 의자 뒤로 넘어지는 장면입니다. 긴장감 넘치게 진행하던 중 예상치 못한 귀신의 등장에 비명을 지르는 리얼한 반응이 큰 웃음을 줍니다.",
+  "tags": ["공포게임", "비명", "몸개그", "리액션"],
   "category": "게임"
 }}
 
-Example 2:
-Input: A video teaching how to make Kimchi Stew.
+Example 2 (Talk/Just Chatting):
+Input: A streamer talking to viewers about their embarrassing part-time job experience.
 Output:
 {{
-  "summary": "이 영상은 백종원 레시피를 활용한 돼지고기 김치찌개 요리 강좌입니다. 재료 손질부터 불 조절, 양념 비율까지 단계별로 자세히 설명하며, 맛있게 끓이는 팁과 노하우를 공유합니다. 집에서 쉽게 따라할 수 있도록 친근한 분위기로 진행됩니다.",
-  "tags": ["간편한", "김치찌개", "레시피", "집밥"],
-  "category": "요리"
+  "summary": "스트리머가 과거 편의점 알바 시절 겪었던 황당한 진상 손님 썰을 풀고 있습니다. 계산 실수를 무마하려다 오히려 일이 커졌던 에피소드를 재치 있게 묘사하여 시청자들의 공감을 얻고 있습니다.",
+  "tags": ["저스트채팅", "알바썰", "에피소드", "유머"],
+  "category": "저스트채팅"
 }}
 
-Now, analyze the provided video and generate a JSON response following the format above. Remember to create a COMPREHENSIVE summary that describes what's happening, not just what's being said."""
+Now, analyze the provided video and generate a JSON response following the format above. Focus on the *story* and *interaction*, not just the visuals."""
 
     def __init__(
         self, 
