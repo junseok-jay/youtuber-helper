@@ -81,6 +81,9 @@ The response:
 "neutral": 1
 }}
     
+Reference:
+- If it contains words like "ㅋㅋㅋ", there is a high chance that it is a positive chat.
+
 Rules:
 - Respond only in JSON format.
 - Do not output the thinking stage, only output in json format.
