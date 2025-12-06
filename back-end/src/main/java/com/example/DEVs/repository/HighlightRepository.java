@@ -23,4 +23,5 @@ public interface HighlightRepository extends JpaRepository<Highlight, Long> {
     )
     void deleteNotHighlightByVideoId(@Param("videoId") String videoId);
     List<Highlight> findAllByVideoIdOrderByStartTime(String videoId);
+    void deleteAllByVideoId(String videoId);
 }

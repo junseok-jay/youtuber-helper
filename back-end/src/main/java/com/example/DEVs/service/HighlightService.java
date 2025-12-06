@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -50,6 +51,7 @@ public class HighlightService {
     }
 
     public void extractHighlight(String videoId){
+        highlightRepository.deleteAllByVideoId(videoId);
         List<Sentiment> sentimentStream = sentimentRepository.findAllByVideoIdOrderByTimeline(videoId);
 
         // 감정 데이터가 0개 또는 1개 이하일 경우 → 하이라이트 생성 불가
@@ -58,7 +60,6 @@ public class HighlightService {
         }
 
         Sentiment prev = new Sentiment();
-        prev.setTimeline("00:00:00");
         prev.setTotalMessages(0);
 
         for (Sentiment s : sentimentStream) {
@@ -79,12 +80,12 @@ public class HighlightService {
                 Highlight h = new Highlight();
                 h.setVideoId(videoId);
 
-                h.setStartTime(prev.getTimeline());   // 00:05:00
-                h.setEndTime(s.getTimeline());     // 00:06:00
+                h.setStartTime(s.getTimeline());   // 00:05:00
+                h.setEndTime(s.getEndTime());     // 00:06:00
 
                 h.setPositive(s.getPositive());
                 h.setTotalMessages(s.getTotalMessages());
-                h.setIncreaseRate(Math.round(increaseRate * 100) / 100.0);
+                h.setIncreaseRate(Math.round(increaseRate * 100));
                 h.setHighlightScore(highLightScore);
 
                 highlightRepository.save(h);
@@ -101,7 +102,22 @@ public class HighlightService {
         String inputVideoPath = VIDEO_BASE_PATH + videoId + ".mp4";
         String OutputFolder = CLIP_OUTPUT_PATH + videoId + "/";
 
-        Files.createDirectories(Paths.get(OutputFolder));
+
+        // 출력 폴더 클린(기존 파일 및 폴더 삭제 후 재생성)
+        Path outputDir = Paths.get(OutputFolder);
+        if (Files.exists(outputDir)) {
+            // 폴더 내부 파일 포함 전체 삭제
+            Files.walk(outputDir)
+                    .sorted(Comparator.reverseOrder())  // 파일 → 폴더 순서로 삭제
+                    .forEach(path -> {
+                        try {
+                            Files.delete(path);
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+        }
+        Files.createDirectories(outputDir);
 
         ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         for (Highlight h : highlights) {

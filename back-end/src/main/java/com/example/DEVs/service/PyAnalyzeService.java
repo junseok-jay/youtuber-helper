@@ -29,6 +29,7 @@ public class PyAnalyzeService {
 
         List<String> cmd = new ArrayList<>();
         String analyzeTime = formatTime(collectStartTime);
+        String endTime = formatTime(collectStartTime + 60_000);
         cmd.add("uv");
         cmd.add("run");
         cmd.add("python");
@@ -60,15 +61,16 @@ public class PyAnalyzeService {
         JsonNode latest = analyses.get(analyses.size() - 1);
         JsonNode sentiment = latest.path("sentiment_summary");
 
-        Sentiment sentimentEntity = new Sentiment();
-        sentimentEntity.setVideoId(videoId);
-        sentimentEntity.setTotalMessages(latest.path("total_messages").asInt());
-        sentimentEntity.setPositive(sentiment.path("positive").asDouble());
-        sentimentEntity.setNegative(sentiment.path("negative").asDouble());
-        sentimentEntity.setNeutral(sentiment.path("neutral").asDouble());
-        sentimentEntity.setTimeline(analyzeTime);
+        Sentiment s = new Sentiment();
+        s.setVideoId(videoId);
+        s.setTotalMessages(latest.path("total_messages").asInt());
+        s.setPositive(sentiment.path("positive").asDouble());
+        s.setNegative(sentiment.path("negative").asDouble());
+        s.setNeutral(sentiment.path("neutral").asDouble());
+        s.setTimeline(analyzeTime);
+        s.setEndTime(endTime);
 
-        return sentimentEntity;
+        return s;
     }
 
     public String runHighlightVideo(String videoPath) throws Exception {

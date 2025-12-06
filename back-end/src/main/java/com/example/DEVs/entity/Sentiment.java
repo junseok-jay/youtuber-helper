@@ -17,6 +17,7 @@ public class Sentiment {
     private String videoId;
     @Id
     private String timeline;
+    private String endTime;
     private Integer totalMessages;
 
     private Double positive;

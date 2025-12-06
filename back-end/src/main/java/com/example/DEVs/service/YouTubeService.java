@@ -94,7 +94,6 @@ public class YouTubeService {
         String chatId = fetchActiveLiveChatId(videoId);
         if (chatId == null || chatId.isEmpty()) return null;
 
-        long end = System.currentTimeMillis() + durationSeconds * 1_000L;
         try {
             Thread.sleep(durationSeconds * 1_000L);
             fetchLiveChatMessages(chatId, videoId);

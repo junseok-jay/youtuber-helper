@@ -1,5 +1,6 @@
 package com.example.DEVs.controller;
 
+import com.example.DEVs.dto.SentimentResponseDTO;
 import com.example.DEVs.entity.Sentiment;
 import com.example.DEVs.repository.SentimentRepository;
 import com.example.DEVs.service.PyAnalyzeService;
@@ -49,7 +50,7 @@ public class ChatController {
 
         // 저장된 sentiment list 가져오기
         return sentimentRepository.findFirstByVideoIdOrderByTimelineDesc(videoId)
-                .map(ResponseEntity::ok)
+                .map(sentiment -> ResponseEntity.ok(new SentimentResponseDTO(sentiment)))
                 .orElse(ResponseEntity.notFound().build());
 
     }
