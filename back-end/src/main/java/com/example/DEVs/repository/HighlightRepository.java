@@ -16,7 +16,7 @@ public interface HighlightRepository extends JpaRepository<Highlight, Long> {
     @Modifying
     @Transactional
     @Query(
-            value = "delete from public.video_highlight where id not in " +
+            value = "delete from public.video_highlight where video_id = :videoId AND id not in " +
                     "(select id from public.video_highlight where video_id = :videoId "+
                     "order by highlight_score desc limit 5)",
             nativeQuery = true

@@ -154,10 +154,12 @@ public class HighlightService {
 
         ProcessBuilder pb = new ProcessBuilder(
                 "ffmpeg",
-                "-i", input,
                 "-ss", start,
                 "-to", end,
-                "-c", "copy",
+                "-i", input,
+                "-c:v", "libx264",
+                "-preset", "fast",
+                "-c:a", "aac",
                 output
         );
 

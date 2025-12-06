@@ -6,5 +6,10 @@
 **/.venv
 db_data
 back-end/build
+videos/
+*.mp4
+*.mkv
+back-end/build/
+back-end/.gradle/
 front-end/node_modules
 python_modules/.venv
